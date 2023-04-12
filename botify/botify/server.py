@@ -16,6 +16,7 @@ from botify.recommenders.sticky_artist import StickyArtist
 from botify.recommenders.toppop import TopPop
 from botify.recommenders.indexed import Indexed
 from botify.recommenders.contextual import Contextual
+from botify.recommenders.custom import Custom_rec
 from botify.track import Catalog
 
 import numpy as np
@@ -67,6 +68,10 @@ class Track(Resource):
             abort(404, description="Track not found")
 
 
+ranked = {}
+used = {}
+
+
 class NextTrack(Resource):
     def post(self, user: int):
         start = time.time()
@@ -87,6 +92,8 @@ class NextTrack(Resource):
             recommender = Contextual(tracks_redis.connection, catalog)
         elif treatment == Treatment.T6:
             recommender = Contextual(tracks_with_diverse_recs_redis.connection, catalog)
+        elif treatment == Treatment.T7:
+            recommender = Custom_rec(tracks_redis.connection, recommendations_redis, catalog, ranked, used)
         else:
             recommender = Random(tracks_redis.connection)
 
