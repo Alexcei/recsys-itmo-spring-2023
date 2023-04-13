@@ -68,10 +68,6 @@ class Track(Resource):
             abort(404, description="Track not found")
 
 
-ranked = {}
-used = {}
-
-
 class NextTrack(Resource):
     def post(self, user: int):
         start = time.time()
@@ -79,23 +75,23 @@ class NextTrack(Resource):
         args = parser.parse_args()
 
         # TODO Seminar 6 step 6: Wire RECOMMENDERS A/B experiment
-        treatment = Experiments.RECOMMENDERS.assign(user)
+        treatment = Experiments.CUSTOM.assign(user)
         if treatment == Treatment.T1:
-            recommender = StickyArtist(tracks_redis.connection, artists_redis.connection, catalog)
-        elif treatment == Treatment.T2:
-            recommender = TopPop(tracks_redis.connection, catalog.top_tracks[:100])
-        elif treatment == Treatment.T3:
-            recommender = Indexed(tracks_redis.connection, recommendations_ub_redis.connection, catalog)
-        elif treatment == Treatment.T4:
-            recommender = Indexed(tracks_redis.connection, recommendations_redis.connection, catalog)
-        elif treatment == Treatment.T5:
-            recommender = Contextual(tracks_redis.connection, catalog)
-        elif treatment == Treatment.T6:
-            recommender = Contextual(tracks_with_diverse_recs_redis.connection, catalog)
-        elif treatment == Treatment.T7:
-            recommender = Custom_rec(tracks_redis.connection, recommendations_redis, catalog, ranked, used)
+            recommender = Custom_rec(tracks_redis.connection, recommendations_redis, catalog)
+        # elif treatment == Treatment.T2:
+        #     recommender = TopPop(tracks_redis.connection, catalog.top_tracks[:100])
+        # elif treatment == Treatment.T3:
+        #     recommender = Indexed(tracks_redis.connection, recommendations_ub_redis.connection, catalog)
+        # elif treatment == Treatment.T4:
+        #     recommender = Indexed(tracks_redis.connection, recommendations_redis.connection, catalog)
+        # elif treatment == Treatment.T5:
+        #     recommender = Random(tracks_redis.connection)
+        # elif treatment == Treatment.T6:
+        #     recommender = Contextual(tracks_with_diverse_recs_redis.connection, catalog)
+        # elif treatment == Treatment.T7:
+        #     recommender = StickyArtist(tracks_redis.connection, artists_redis.connection, catalog)
         else:
-            recommender = Random(tracks_redis.connection)
+            recommender = Contextual(tracks_redis.connection, catalog)
 
         recommendation = recommender.recommend_next(user, args.track, args.time)
 
