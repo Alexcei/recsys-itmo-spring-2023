@@ -2,7 +2,6 @@ from collections import defaultdict
 from .random import Random
 from .recommender import Recommender
 from .indexed import Indexed
-from .toppop import TopPop
 import random
 
 
@@ -14,24 +13,21 @@ class Custom_rec(Recommender):
         self.tracks_redis = tracks_redis
         self.random = Random(tracks_redis)
         self.fallback = Indexed(tracks_redis, recommendations_redis, catalog)
-        self.toppop = TopPop(tracks_redis.connection, catalog.top_tracks[:100])
         self.catalog = catalog
-        self.ranked = defaultdict(lambda: defaultdict(int))
-        self.used = defaultdict(list)
+        self.full_listen = defaultdict(set)
 
     def recommend_next(self, user: int, prev_track: int, prev_track_time: float) -> int:
-        self.used[user].append(prev_track)
-        if prev_track_time > 0.5:
-            self.ranked[user][prev_track] += 1
+        if prev_track_time > 0.7:
+            self.full_listen[user].add(prev_track)
+        else:
+            self.full_listen[user].discard(prev_track)
 
-        if not len(self.ranked[user]):
-            if random.random() > 0.95:
-                return self.toppop.recommend_next(user, prev_track, prev_track_time)
+
+        if not len(self.full_listen[user]):
             return self.fallback.recommend_next(user, prev_track, prev_track_time)
 
-        prev_track = random.choice(list(self.ranked[user]))
+        prev_track = random.choice(list(self.full_listen[user]))
         previous_track = self.tracks_redis.get(prev_track)
-        self.ranked[user][prev_track] += 1
 
         if previous_track is None:
             return self.fallback.recommend_next(user, prev_track, prev_track_time)
